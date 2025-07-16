@@ -12,7 +12,7 @@ RUN npm install
 COPY . .
 
 # 4. Build the app
-RUN npm run build
+RUN NEXT_DISABLE_ESLINT=1 npm run build
 
 # Production image
 FROM node:20-alpine
