@@ -1,3 +1,4 @@
+# Build stage
 FROM node:20-alpine AS builder
 
 WORKDIR /frontend-test
@@ -11,10 +12,11 @@ RUN npm install
 # 3. Copy the rest of your application code
 COPY . .
 
-# 4. Build the app
-RUN NEXT_DISABLE_ESLINT=1 npm run build
+# Set environment variable properly before build
+ENV NEXT_DISABLE_ESLINT=1
+RUN npm run build
 
-# Production image
+# Production stage
 FROM node:20-alpine
 
 WORKDIR /frontend-test
