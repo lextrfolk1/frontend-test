@@ -7,7 +7,7 @@ export default function Home() {
   const [responseHtml, setResponseHtml] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9999';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://testing-service';
 
   const callApi = async (endpoint: string) => {
     setLoading(true);
