@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState,useCallback } from 'react';
+import WebSocketListener from '@/components/WebSocketListener';
 
 export default function Home() {
   const [showPanel, setShowPanel] = useState(false);
   const [responseHtml, setResponseHtml] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://34.56.192.186/proxy';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081/proxy/api';
+  
+  const handleWebSocketMessage = useCallback((payload:any) => {},[]);
+
 
   const callApi = async (endpoint: string) => {
     setLoading(true);
@@ -26,6 +30,10 @@ export default function Home() {
 
   return (
     <div style={styles.page}>
+      <WebSocketListener
+        topic="/topic/messages"
+        onMessage={handleWebSocketMessage}
+      />
       <h1 style={styles.heading}>API GATEWAY TESTING</h1>
 
       <div style={styles.buttonGroup}>
