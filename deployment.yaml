@@ -16,4 +16,4 @@ spec:
         - name: frontend-test
           image: us-central1-docker.pkg.dev/tejalf-project/tejalf-repo/frontend-test:latest
           ports:
-            - containerPort: 9999
+            - containerPort: 3000
