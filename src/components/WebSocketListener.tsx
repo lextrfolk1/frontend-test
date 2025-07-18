@@ -1,107 +1,92 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
+import { Client, IMessage } from '@stomp/stompjs';
 
 interface WebSocketListenerProps {
   topic: string;
   onMessage: (payload: any) => void;
-  socketPath?: string; // default: '/websocket-endpoint'
-  reconnectDelayMs?: number; // default: 5000
-  heartbeatMs?: number; // default: 10000
+  socketPath?: string; // default: relative path
+  reconnectDelayMs?: number;
+  heartbeatMs?: number;
 }
 
 const WebSocketListener = ({
   topic,
   onMessage,
-  socketPath = '/websocket-endpoint',
+  socketPath = 'http://localhost:8081/proxy/ws/websocket-endpoint',
   reconnectDelayMs = 5000,
   heartbeatMs = 10000,
 }: WebSocketListenerProps) => {
   const stompClientRef = useRef<Client | null>(null);
-  const connectedRef = useRef<boolean>(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const onMessageRef = useRef(onMessage);
 
   useEffect(() => {
-    const isSecure = window.location.protocol === 'https:';
-    const scheme = isSecure ? 'wss://' : 'ws://';
-    const host = 'localhost:8081'; // gateway
-    const url = `${scheme}${host}/proxy/ws${socketPath}`;
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
 
-    console.log('Connecting to native WebSocket at:', url);
-
-    const connect = () => {
-      if (connectedRef.current) return;
-
-      const stompClient = new Client({
-        brokerURL: url, // native WebSocket URL
-        reconnectDelay: reconnectDelayMs,
-        heartbeatIncoming: heartbeatMs,
-        heartbeatOutgoing: heartbeatMs,
-
-        onConnect: () => {
-          console.log('WebSocket connected');
-          connectedRef.current = true;
-
-          stompClient.subscribe(topic, (message) => {
-            try {
-              const payload = message.body;
-              console.log('WebSocket Message:', payload);
-              onMessage(payload);
-            } catch (err) {
-              console.error('Failed to parse WebSocket message:', err);
-            }
-          });
-        },
-
-        onDisconnect: () => {
-          console.warn('🔌 WebSocket disconnected');
-          connectedRef.current = false;
-          attemptReconnect();
-        },
-
-        onStompError: (frame) => {
-          console.error('STOMP error:', frame);
-          connectedRef.current = false;
-          attemptReconnect();
-        },
-
-        onWebSocketError: (event) => {
-          console.error('WebSocket error:', event);
-          connectedRef.current = false;
-          attemptReconnect();
-        },
-      });
-
-      stompClient.activate();
-      stompClientRef.current = stompClient;
-    };
-
-    const attemptReconnect = () => {
+  useEffect(() => {
+    const scheduleReconnect = () => {
       if (reconnectTimeoutRef.current) return;
 
       reconnectTimeoutRef.current = setTimeout(() => {
         reconnectTimeoutRef.current = null;
         console.log('Attempting reconnection...');
-        connect();
+        stompClientRef.current?.deactivate();
+        stompClientRef.current?.activate();
       }, reconnectDelayMs);
     };
 
-    connect();
+    const stompClient = new Client({
+      webSocketFactory: () => new SockJS(socketPath),
+      reconnectDelay: 0,
+      heartbeatIncoming: heartbeatMs,
+      heartbeatOutgoing: heartbeatMs,
 
-    const reconnectionInterval = setInterval(() => {
-      if (!connectedRef.current) {
-        console.log('Reconnection check...');
-        connect();
-      }
-    }, 7000);
+      onConnect: () => {
+        console.log('✅ WebSocket connected');
+
+        stompClient.subscribe(topic, (message: IMessage) => {
+          try {
+            const payload = message.body;
+            console.log('WebSocket message:', payload);
+            onMessageRef.current?.(payload);
+          } catch (err) {
+            console.error('Failed to parse message:', err);
+          }
+        });
+      },
+
+      onWebSocketClose: () => {
+        console.warn('WebSocket closed');
+        scheduleReconnect();
+      },
+
+      onWebSocketError: (error) => {
+        console.error('WebSocket error:', error);
+        scheduleReconnect();
+      },
+
+      onStompError: (frame) => {
+        console.error('STOMP error:', frame);
+        scheduleReconnect();
+      },
+    });
+
+ //   stompClient.debug = (msg) => console.log('[STOMP DEBUG]:', msg);
+    stompClient.activate();
+    stompClientRef.current = stompClient;
 
     return () => {
-      clearInterval(reconnectionInterval);
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-      if (stompClientRef.current) stompClientRef.current.deactivate();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      stompClient.deactivate();
     };
-  }, [topic, onMessage, socketPath, reconnectDelayMs, heartbeatMs]);
+  }, [topic, socketPath, reconnectDelayMs, heartbeatMs]);
 
   return null;
 };
