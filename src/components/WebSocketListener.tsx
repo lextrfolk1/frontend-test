@@ -11,6 +11,7 @@ import {
   Chip,
   Stack,
   Divider,
+  useTheme,
 } from '@mui/material';
 
 interface WebSocketListenerProps {
@@ -31,6 +32,7 @@ const WebSocketListener = ({
   const stompClientRef = useRef<Client | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const onMessageRef = useRef(onMessage);
+  const theme = useTheme();
 
   const [status, setStatus] = useState('🔴 Disconnected');
   const [latestMessage, setLatestMessage] = useState('');
@@ -102,6 +104,12 @@ const WebSocketListener = ({
     };
   }, [topic, socketPath, reconnectDelayMs, heartbeatMs]);
 
+  const statusColor = status.includes('Connected')
+    ? 'success'
+    : status.includes('Reconnecting')
+    ? 'warning'
+    : 'error';
+
   return (
     <>
       {/* Status Card */}
@@ -110,11 +118,12 @@ const WebSocketListener = ({
           position: 'fixed',
           top: 16,
           left: 16,
-          minWidth: 250,
-          backgroundColor: '#121212',
-          color: 'white',
-          zIndex: 9999,
-          boxShadow: 5,
+          width: 260,
+          bgcolor: theme.palette.mode === 'dark' ? '#212121' : '#f0f0f0',
+          color: theme.palette.text.primary,
+          zIndex: 1300,
+          borderRadius: 2,
+          boxShadow: 6,
         }}
       >
         <CardContent>
@@ -122,19 +131,9 @@ const WebSocketListener = ({
             WebSocket Status
           </Typography>
           <Stack spacing={1}>
-            <Chip
-              label={status}
-              color={
-                status.includes('Connected')
-                  ? 'success'
-                  : status.includes('Reconnecting')
-                  ? 'warning'
-                  : 'error'
-              }
-              variant="outlined"
-            />
+            <Chip label={status} color={statusColor} variant="filled" />
             <Typography variant="body2">
-              Messages Received: <strong>{messageCount}</strong>
+              Messages: <strong>{messageCount}</strong>
             </Typography>
           </Stack>
         </CardContent>
@@ -147,23 +146,34 @@ const WebSocketListener = ({
           top: 16,
           right: 16,
           maxWidth: 500,
-          backgroundColor: '#1e1e1e',
-          color: '#f5f5f5',
-          zIndex: 9999,
-          boxShadow: 5,
+          bgcolor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#ffffff',
+          color: theme.palette.text.primary,
+          zIndex: 1300,
+          borderRadius: 2,
+          boxShadow: 6,
         }}
       >
         <CardContent>
           <Typography variant="h6" gutterBottom>
             Latest Message
           </Typography>
-          <Divider sx={{ mb: 1, borderColor: '#555' }} />
-          <Typography variant="body2" sx={{ color: '#ccc', whiteSpace: 'pre-wrap' }}>
+          <Divider sx={{ mb: 1 }} />
+          <Typography
+            variant="body2"
+            sx={{ whiteSpace: 'pre-wrap', color: theme.palette.text.secondary }}
+          >
             {latestMessage || 'No messages received yet.'}
           </Typography>
           {latestMessage && (
-            <Typography variant="caption" sx={{ display: 'block', mt: 1, color: '#999' }}>
-              ⏱️ Received at: {timestamp}
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                mt: 1,
+                color: theme.palette.text.disabled,
+              }}
+            >
+              ⏱️ {timestamp}
             </Typography>
           )}
         </CardContent>
