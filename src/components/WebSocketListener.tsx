@@ -9,10 +9,14 @@ import {
   CardContent,
   Typography,
   Chip,
-  Stack,
   Divider,
+  Stack,
   useTheme,
+  Slide,
+  useMediaQuery,
+  IconButton,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 
 interface WebSocketListenerProps {
   topic: string;
@@ -32,12 +36,16 @@ const WebSocketListener = ({
   const stompClientRef = useRef<Client | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const onMessageRef = useRef(onMessage);
-  const theme = useTheme();
 
   const [status, setStatus] = useState('🔴 Disconnected');
   const [latestMessage, setLatestMessage] = useState('');
   const [timestamp, setTimestamp] = useState('');
   const [messageCount, setMessageCount] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
     onMessageRef.current = onMessage;
@@ -110,75 +118,97 @@ const WebSocketListener = ({
     ? 'warning'
     : 'error';
 
-  return (
-    <>
-      {/* Status Card */}
-      <Card
-        sx={{
-          position: 'fixed',
-          top: 16,
-          left: 16,
-          width: 260,
-          bgcolor: theme.palette.mode === 'dark' ? '#212121' : '#f0f0f0',
-          color: theme.palette.text.primary,
-          zIndex: 1300,
-          borderRadius: 2,
-          boxShadow: 6,
-        }}
-      >
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            WebSocket Status
-          </Typography>
-          <Stack spacing={1}>
-            <Chip label={status} color={statusColor} variant="filled" />
-            <Typography variant="body2">
-              Messages: <strong>{messageCount}</strong>
-            </Typography>
-          </Stack>
-        </CardContent>
-      </Card>
+  if (!visible) return null;
 
-      {/* Latest Message Card */}
-      <Card
-        sx={{
-          position: 'fixed',
-          top: 16,
-          right: 16,
-          maxWidth: 500,
-          bgcolor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#ffffff',
-          color: theme.palette.text.primary,
-          zIndex: 1300,
-          borderRadius: 2,
-          boxShadow: 6,
-        }}
-      >
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Latest Message
-          </Typography>
-          <Divider sx={{ mb: 1 }} />
-          <Typography
-            variant="body2"
-            sx={{ whiteSpace: 'pre-wrap', color: theme.palette.text.secondary }}
+  return (
+    <Slide direction="down" in={visible} mountOnEnter unmountOnExit>
+      <Box
+    sx={{
+      position: 'fixed',
+      top: 16, // 👈 aligned to top
+      right: 16,
+      width: isMobile ? '95%' : 480,
+      maxHeight: 360,
+      overflow: 'hidden',
+      zIndex: 1500,
+      boxShadow: 8,
+      borderRadius: 3,
+      bgcolor: isDark ? '#1e1e1e' : '#fff',
+      color: theme.palette.text.primary,
+    }}
+  >
+        <Card
+          sx={{
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            borderRadius: 3,
+          }}
+        >
+          <CardContent sx={{ pb: 1 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="subtitle1" fontWeight="bold">
+                📡 WebSocket Console
+              </Typography>
+              <IconButton size="small" onClick={() => setVisible(false)}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Stack>
+
+            <Stack direction="row" spacing={1} alignItems="center" mt={1}>
+              <Chip
+                label={status}
+                color={statusColor}
+                size="small"
+                variant="filled"
+                sx={{ fontWeight: 500 }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                Messages: <strong>{messageCount}</strong>
+              </Typography>
+            </Stack>
+          </CardContent>
+
+          <Divider />
+
+          <CardContent
+            sx={{
+              flexGrow: 1,
+              overflowY: 'auto',
+              backgroundColor: isDark ? '#121212' : '#f9f9f9',
+              borderRadius: 2,
+            }}
           >
-            {latestMessage || 'No messages received yet.'}
-          </Typography>
-          {latestMessage && (
-            <Typography
-              variant="caption"
-              sx={{
-                display: 'block',
-                mt: 1,
-                color: theme.palette.text.disabled,
-              }}
-            >
-              ⏱️ {timestamp}
-            </Typography>
-          )}
-        </CardContent>
-      </Card>
-    </>
+            {latestMessage ? (
+              <>
+                <Typography
+                  variant="body2"
+                  component="pre"
+                  sx={{
+                    whiteSpace: 'pre-wrap',
+                    fontFamily: 'monospace',
+                    fontSize: '0.85rem',
+                    color: isDark ? '#ddd' : '#333',
+                  }}
+                >
+                  {latestMessage}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{ display: 'block', mt: 1, color: 'text.disabled' }}
+                >
+                  ⏱ Received at: {timestamp}
+                </Typography>
+              </>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No messages received yet.
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      </Box>
+    </Slide>
   );
 };
 
