@@ -8,7 +8,7 @@ export default function Home() {
   const [responseHtml, setResponseHtml] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://34.10.139.228/';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://34.10.139.228';
   
   const handleWebSocketMessage = useCallback((payload:any) => {},[]);
 
